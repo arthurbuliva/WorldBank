@@ -42,6 +42,11 @@ public abstract class Money
     public abstract ArrayList<HashMap<String, Object>> essentialFields();
 
     /**
+     * FieldTypes that should not be input but are derived from the other fields
+     */
+    public abstract ArrayList<HashMap<String, Object>> derivedFields();
+
+    /**
      * Values of the essential fields
      */
     protected ArrayList values;
@@ -158,6 +163,10 @@ public abstract class Money
 
             injectedFields.add(optionalField);
         }
+
+        /**
+         * TODO: Inject the derived fields
+         */
 
         this.values = injectedFields;
     }

@@ -71,6 +71,15 @@ public class Kenya extends Money
         return fields;
     }
 
+    /**
+     * FieldTypes that should not be input but are derived from the other fields
+     */
+    @Override
+    public ArrayList<HashMap<String, Object>> derivedFields()
+    {
+        return null;
+    }
+
     public HashMap<?, ?> validate_accountHolderName()
     {
         HashMap validationResults = new HashMap<>();

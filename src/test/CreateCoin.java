@@ -1,6 +1,5 @@
 package test;
 
-import core.EnDec;
 import currency.Kenya;
 
 import java.util.HashMap;
@@ -11,8 +10,8 @@ public class CreateCoin
     {
         HashMap<String, String> values = new HashMap();
         values.put("accountHolderName", "Arthur Buliva");
+        values.put("accountNumber", "1234567S8900987654321");
         values.put("accountHolderAddress", "Hello world");
-        values.put("accountNumber", "0100300359700");
         values.put("BIC", "SCBKENLXXXX");
 
         Kenya kenya = new Kenya(values);

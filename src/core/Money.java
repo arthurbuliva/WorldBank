@@ -42,32 +42,13 @@ public abstract class Money
     public abstract ArrayList<HashMap<String, Object>> essentialFields();
 
     /**
-     * FieldTypes that are optional
-     * <p>
-     * The end result will be an array of HashMap essentialFields with attributes
-     * For example
-     * [
-     * {
-     * type        => TextField,
-     * label       => "Account Holder Name",
-     * validator   => validateAccountHolderName()
-     * },
-     * {
-     * type        => TextArea,
-     * label       => "Account Holder Address",
-     * validator   => validateAccountHolderAddress()
-     * }
-     * ]
-     */
-    public abstract ArrayList<HashMap<String, Object>> optionalFields();
-
-    /**
      * Values of the essential fields
      */
     protected ArrayList values;
 
     /**
      * Constructor of the Money class
+     *
      * @param values The values of the essential fields as a HashMap
      * @throws Exception
      */
@@ -113,7 +94,7 @@ public abstract class Money
     /**
      * Sets the values into the fields
      */
-    private void injectFields(HashMap<String, ?> values)
+    private void injectFields(HashMap<String, ?> values) throws Exception
     {
         ArrayList injectedFields = new ArrayList();
 
@@ -142,72 +123,41 @@ public abstract class Money
              */
             essentialField.put("value", fieldValue);
 
+            /**
+             * Remove this from 'values' field so that we can implement the optional fields
+             */
+
+            values.remove(fieldName);
 
             injectedFields.add(essentialField);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
         /**
-         * TODO: Next, inject all the optional fields
+         * Inject the optional fields
          */
-//        ArrayList fields = essentialFields();
-//
-//        for (Object field : fields)
-//        {
-//            // Object is a HashMap
-//            HashMap<String, Object> essentialField = (HashMap<String, Object>) field;
-//
-//            /**
-//             * Get the name of the field
-//             */
-//            String fieldName = (String) essentialField.get("name");
-//
-//            /**
-//             * Get the value of this field name as defined from the initialization parameters
-//             */
-//            String fieldValue = (String) values.get(fieldName);
-//
-//            /**
-//             * Set the value by adding a new field onto the array
-//             */
-//            essentialField.put("value", fieldValue);
-//
-//
-//            injectedFields.add(essentialField);
-//        }
+        for (HashMap.Entry<String, ?> entry : values.entrySet())
+        {
+            String validatorMethod = String.format("validate_%s", entry.getKey());
 
+            try
+            {
+                this.getClass().getDeclaredMethod(validatorMethod, null);
+            }
+            catch (NoSuchMethodException ex)
+            {
+                throw new Exception(
+                        String.format("%s is not a valid input parameter for %s",
+                                entry.getKey(), this.getClass().getSimpleName()
+                        )
+                );
+            }
 
+            HashMap<String, Object> optionalField = new HashMap<>();
+            optionalField.put("name", entry.getKey());
+            optionalField.put("value", entry.getValue());
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            injectedFields.add(optionalField);
+        }
 
         this.values = injectedFields;
     }
@@ -259,15 +209,14 @@ public abstract class Money
 
     /**
      * Checks all the essential fields, returning an ArrayList of all the validation results
+     *
      * @return An arraylist of all validation errors whenever applicable
      */
     public ArrayList validateValues() throws Exception
     {
         ArrayList validation = new ArrayList();
 
-        ArrayList fields = essentialFields();
-
-        for (Object field : fields)
+        for (Object field : values)
         {
             String fieldName = (String) ((HashMap<String, Object>) field).get("name");
 
@@ -283,6 +232,7 @@ public abstract class Money
 
     /**
      * Checks all the essential fields, returning an ArrayList of all the validation results
+     *
      * @return
      */
     public String save() throws Exception
@@ -292,16 +242,32 @@ public abstract class Money
         for (Object field : validatedFields)
         {
             String fieldName = (String) ((HashMap<String, Object>) field).get("field");
-            String errorMessage = (String) ((HashMap<String, Object>) field).get("errorMessage");
             boolean validity = (boolean) ((HashMap<String, Object>) field).get("validity");
 
-            if(errorMessage != null)
+            try
             {
-                throw new Exception(errorMessage);
+                String warningMessage = (String) ((HashMap<String, Object>) field).get("warningMessage");
+
+                if (warningMessage != null)
+                {
+                    Logger.getLogger(getCountryName()).log(
+                            Level.WARNING,
+                            String.format("%s: %s", fieldName, warningMessage)
+                    );
+                }
             }
-            if(!validity)
+            catch (NullPointerException ex)
             {
-                throw new Exception("Could not validate input on field " + fieldName);
+                //Do nothing really
+            }
+            if (!validity)
+            {
+                String errorMessage = (String) ((HashMap<String, Object>) field).get("errorMessage");
+
+                throw new Exception(
+                        String.format("Could not validate input %s: %s",
+                                fieldName, errorMessage)
+                );
             }
         }
 
@@ -312,18 +278,14 @@ public abstract class Money
          *
          * The key of this value will be the hash of the input values
          */
-
-        String currencyName = getClass().getName();
         String valuesAsJSON = new Gson().toJson(values);
 
-        // TODO: ("Encode these or encrypt them otherwise");
+        String storageKey = EnDec.sha256(EnDec.encode(String.format("%s.%s", getCountryName(), valuesAsJSON)));
+        String storageValues = valuesAsJSON;
 
-//        Logger.getLogger(this.getClass().getName()).log(
-//                Level.INFO,
-//                String.format("%d%s => %s", currentTimeStamp, currencyName, valuesAsJSON)
-//        );
-
-        return EnDec.sha256(EnDec.encode(String.format("%s %s", currencyName, valuesAsJSON)));
+        // TODO: ("Encode these or encrypt them otherwise because GDPR");
+        System.out.println(getCountryName());
+        return storageKey;
     }
 
 }

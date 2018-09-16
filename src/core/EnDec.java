@@ -47,7 +47,7 @@ public class EnDec
     {
         try
         {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance("SHA3-512");
             byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
             String encoded = Base64.getEncoder().withoutPadding().encodeToString(hash);
 

@@ -244,7 +244,7 @@ public abstract class Money
      *
      * @return
      */
-    public String save() throws Exception
+    public ArrayList save() throws Exception
     {
         ArrayList validatedFields = validateValues();
 
@@ -293,8 +293,17 @@ public abstract class Money
         String storageValues = valuesAsJSON;
 
         // TODO: ("Encode these or encrypt them otherwise because GDPR");
-        System.out.println(getCountryName());
-        return storageKey;
+
+
+
+        HashMap<String, String> coin = new HashMap<>();
+        coin.put("coinId", storageKey);
+
+        values.add(coin);
+
+
+
+        return values;
     }
 
 }

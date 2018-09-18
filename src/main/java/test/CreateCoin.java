@@ -1,5 +1,7 @@
 package test;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import currency.Kenya;
 
 import java.util.HashMap;
@@ -10,7 +12,7 @@ public class CreateCoin
     {
         HashMap<String, String> values = new HashMap();
         values.put("accountHolderName", "Arthur Buliva");
-        values.put("accountNumber", "1234567S8900987654321");
+        values.put("accountNumber", "12345678900987654321");
         values.put("accountHolderAddress", "Hello world");
         values.put("BIC", "SCBKENLXXXX");
 
@@ -20,8 +22,7 @@ public class CreateCoin
         System.out.println(validity);
 
 
-        String coinID = kenya.save();
-        System.out.println(coinID);
+        System.out.println(kenya.save());
 
     }
 }

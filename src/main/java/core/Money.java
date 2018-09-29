@@ -1,6 +1,7 @@
 package core;
 
 import com.google.gson.Gson;
+import org.hibernate.validator.internal.constraintvalidators.bv.time.futureorpresent.AbstractFutureOrPresentEpochBasedValidator;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -40,11 +41,6 @@ public abstract class Money
      * ]
      */
     public abstract ArrayList<HashMap<String, Object>> essentialFields();
-
-    /**
-     * FieldTypes that should not be input but are derived from the other fields
-     */
-    public abstract ArrayList<HashMap<String, Object>> derivedFields();
 
     /**
      * Values of the essential fields
@@ -118,6 +114,17 @@ public abstract class Money
              */
             String fieldName = (String) essentialField.get("name");
 
+            // This is a redundant check!
+            if (((HashMap<String, Object>) field).containsKey(fieldName))
+            {
+                throw new Exception(
+                        String.format("Cannot add %s as an optional field because it" +
+                                        " is already defined as an essential field",
+                                fieldName
+                        )
+                );
+            }
+
             /**
              * Get the value of this field name as defined from the initialization parameters
              */
@@ -163,10 +170,6 @@ public abstract class Money
 
             injectedFields.add(optionalField);
         }
-
-        /**
-         * TODO: Inject the derived fields
-         */
 
         this.values = injectedFields;
     }
@@ -244,7 +247,7 @@ public abstract class Money
      *
      * @return
      */
-    public ArrayList save() throws Exception
+    public String saveCoin() throws Exception
     {
         ArrayList validatedFields = validateValues();
 
@@ -281,7 +284,7 @@ public abstract class Money
         }
 
         /**
-         * If we reach this point of the code, all the essential fields have values
+         * If we reach this point of the code, all the fields have values
          * and they have all been validated OK. We now need to save the values and return an ID
          * of the saved data.
          *
@@ -289,21 +292,53 @@ public abstract class Money
          */
         String valuesAsJSON = new Gson().toJson(values);
 
-        String storageKey = EnDec.sha256(EnDec.encode(String.format("%s.%s", getCountryName(), valuesAsJSON)));
-        String storageValues = valuesAsJSON;
+        String storageKey = EnDec.encode(EnDec.sha256(EnDec.encode(String.format("%s.%s", getCountryName(), valuesAsJSON))));
 
         // TODO: ("Encode these or encrypt them otherwise because GDPR");
-
-
 
         HashMap<String, String> coin = new HashMap<>();
         coin.put("coinId", storageKey);
 
-        values.add(coin);
+        validatedFields.add(coin);
 
+        String payload = new Gson().toJson(validatedFields);
 
+        Store store = new Store();
 
-        return values;
+        if (store.saveCoin(storageKey, payload))
+        {
+//            return validatedFields;
+            return storageKey;
+        }
+        else
+        {
+            return null;
+        }
     }
+
+
+    /**
+     * Retrieves a coin from the store and displays it
+     *
+     * @return
+     */
+    public String showCoin(String coinId)
+    {
+        String coin = null;
+
+        try
+        {
+            Store store = new Store();
+
+            coin = (String) store.displayCoin(coinId);
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+
+        return coin;
+    }
+
 
 }

@@ -137,7 +137,7 @@ public class MintController
         try
         {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String json = gson.toJson(money.save());
+            String json = gson.toJson(money.saveCoin());
 
             return json;
         }

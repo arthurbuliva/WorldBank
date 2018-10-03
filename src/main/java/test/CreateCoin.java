@@ -9,10 +9,10 @@ public class CreateCoin
     public static void main(String[] args) throws Exception
     {
         HashMap<String, String> values = new HashMap();
-        values.put("accountHolderName", "Arthur Buliva");
+        values.put("accountHolderName", "Mr Buliva!");
         values.put("accountNumber", "411234567890");
-        values.put("accountHolderAddress", "Amsterdam, Netherlands");
-        values.put("BIC", "SCBKENLXXXX");
+        values.put("accountHolderAddress", "Amsterdam, The Netherlands");
+        values.put("BIC", "ABN Amro Bank");
 
         Kenya kenya = new Kenya(values);
 
@@ -23,8 +23,6 @@ public class CreateCoin
 //        System.out.println();
 
         String coin = kenya.saveCoin();
-
-        System.out.println(coin);
 
         System.out.println(kenya.showCoin(coin));
 

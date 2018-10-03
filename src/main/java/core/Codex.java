@@ -1,5 +1,7 @@
 package core;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -10,8 +12,12 @@ import java.util.logging.Logger;
 /**
  * Encoder and decoder
  */
-public class EnDec
+public class Codex
 {
+    private static Cipher ecipher;
+    private static Cipher dcipher;
+    private static SecretKey key;
+
     /**
      * Encode using Base64 a given string
      * @param plainText

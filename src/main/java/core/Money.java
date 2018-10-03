@@ -1,13 +1,15 @@
 package core;
 
 import com.google.gson.Gson;
-import org.hibernate.validator.internal.constraintvalidators.bv.time.futureorpresent.AbstractFutureOrPresentEpochBasedValidator;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static core.LockSmith.PRIVATE_KEY;
+import static core.LockSmith.PUBLIC_KEY;
 
 public abstract class Money
 {
@@ -21,6 +23,10 @@ public abstract class Money
     public abstract String getCurrencyName();
 
     public abstract String getCurrencyCode();
+
+    private Enigma enigma = new Enigma();
+
+    private LockSmith lockSmith = new LockSmith();
 
     /**
      * FieldTypes that we need in order to validateValues any currency
@@ -292,7 +298,7 @@ public abstract class Money
          */
         String valuesAsJSON = new Gson().toJson(values);
 
-        String storageKey = EnDec.encode(EnDec.sha256(EnDec.encode(String.format("%s.%s", getCountryName(), valuesAsJSON))));
+        String storageKey = Codex.encode(Codex.sha256(Codex.encode(String.format("%s.%s", getCountryName(), valuesAsJSON))));
 
         // TODO: ("Encode these or encrypt them otherwise because GDPR");
 
@@ -303,9 +309,11 @@ public abstract class Money
 
         String payload = new Gson().toJson(validatedFields);
 
+        String encrypted_msg = enigma.encryptText(payload, enigma.getPrivate(PRIVATE_KEY));
+
         Store store = new Store();
 
-        if (store.saveCoin(storageKey, payload))
+        if (store.saveCoin(storageKey, encrypted_msg))
         {
 //            return validatedFields;
             return storageKey;
@@ -330,7 +338,7 @@ public abstract class Money
         {
             Store store = new Store();
 
-            coin = (String) store.displayCoin(coinId);
+            coin = enigma.decryptText((String) store.displayCoin(coinId), enigma.getPublic(PUBLIC_KEY));
         }
         catch (Exception ex)
         {
@@ -339,6 +347,5 @@ public abstract class Money
 
         return coin;
     }
-
 
 }

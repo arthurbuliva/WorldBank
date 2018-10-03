@@ -15,7 +15,7 @@ public final class Store
     // The database in which to store our coins
     private static final String VAULT = "jdbc:sqlite:silo/coins.db";
 
-    public Store()
+    protected Store()
     {
         File vaultLocation = new File("silo");
 
@@ -65,10 +65,14 @@ public final class Store
 
         try (Connection connection = DriverManager.getConnection(VAULT))
         {
-            String sql = "SELECT serial_number, denomination FROM coins WHERE serial_number = ?";
+            String sql = "SELECT serial_number, denomination " +
+                    "FROM coins " +
+                    "WHERE serial_number = ? " +
+                    "AND validity = ?";
 
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, serialNumber);
+            statement.setInt(2, 1);
 
             ResultSet resultSet = statement.executeQuery();
 
@@ -81,7 +85,7 @@ public final class Store
             }
 
             // Clean-up environment
-            statement.close();
+            connection.close();
         }
         catch (SQLException se)
         {
@@ -93,18 +97,23 @@ public final class Store
 
     private void constructStore()
     {
-        try (Connection conn = DriverManager.getConnection(VAULT))
+        try (Connection connection = DriverManager.getConnection(VAULT))
         {
             // SQL statement for creating a new table
             String sql = "CREATE TABLE coins(" +
-                    "serial_number TEXT NOT NULL PRIMARY KEY," +
-                    "denomination TEXT" +
+                    "serial_number TEXT NOT NULL UNIQUE," +
+                    "denomination TEXT," +
+                    "valid_from DATE DEFAULT CURRENT_DATE," +
+                    "validity INT DEFAULT 1," +
+                    "PRIMARY KEY (serial_number)" +
                     ")";
 
-            PreparedStatement statement = conn.prepareStatement(sql);
+            PreparedStatement statement = connection.prepareStatement(sql);
 
             // create a new table
             statement.executeUpdate();
+
+            connection.close();
         }
         catch (SQLException e)
         {

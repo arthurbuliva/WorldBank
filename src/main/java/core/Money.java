@@ -8,9 +8,6 @@ import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static core.LockSmith.PRIVATE_KEY;
-import static core.LockSmith.PUBLIC_KEY;
-
 public abstract class Money
 {
     /**
@@ -61,39 +58,42 @@ public abstract class Money
      */
     public Money(HashMap<String, String> values) throws Exception
     {
-        /**
+        /*
          * Check if all the validators exist
          */
         checkValidators();
 
-        /**
+        /*
          * Check if all the necessary essentialFields() have a value
          */
         checkValues(values);
 
-        /**
+        /*
          * Set the values that were entered while initializing into the fields
          */
         injectFields(values);
     }
 
     /**
-     * Checks that all the mandatory fields that have been defined in the currency
+     * Checks that all the mandatory fields that have been defined in the specific currency class
      * have a value attributed to them upon initialization
+     *
+     * @param values The values that have been input
+     * @throws NullPointerException In case any of the essential fields does not have a value
      */
-    private void checkValues(HashMap<String, ?> values) throws Exception
+    private void checkValues(HashMap<String, ?> values) throws NullPointerException
     {
         for (Object field : essentialFields())
         {
             String fieldName = (String) ((HashMap<String, Object>) field).get("name");
             String userValue = (String) values.get(fieldName);
 
-            /**
+            /*
              * Throw an exception if any of the mandatory fields does not have a value
              */
             if (userValue == null)
             {
-                throw new Exception(String.format("Essential field '%s' must have a value", fieldName));
+                throw new NullPointerException(String.format("Essential field '%s' must have a value", fieldName));
             }
         }
     }
@@ -105,7 +105,7 @@ public abstract class Money
     {
         ArrayList injectedFields = new ArrayList();
 
-        /**
+        /*
          * Get all the essential fields
          */
         ArrayList fields = essentialFields();
@@ -115,7 +115,7 @@ public abstract class Money
             // Object is a HashMap
             HashMap<String, Object> essentialField = (HashMap<String, Object>) field;
 
-            /**
+            /*
              * Get the name of the field
              */
             String fieldName = (String) essentialField.get("name");
@@ -131,17 +131,17 @@ public abstract class Money
                 );
             }
 
-            /**
+            /*
              * Get the value of this field name as defined from the initialization parameters
              */
             String fieldValue = (String) values.get(fieldName);
 
-            /**
+            /*
              * Set the value by adding a new field onto the array
              */
             essentialField.put("value", fieldValue);
 
-            /**
+            /*
              * Remove this from 'values' field so that we can implement the optional fields
              */
 
@@ -194,7 +194,7 @@ public abstract class Money
         for (Object field : fields)
         {
 
-            /**
+            /*
              * Ensure that each field has a 'name' attribute
              */
             String fieldName = (String) ((HashMap<String, Object>) field).get("name");
@@ -204,7 +204,7 @@ public abstract class Money
                 throw new Exception("The 'name' attribute of one or more fields has not been defined");
             }
 
-            /**
+            /*
              * Make necessary a validator method based on the name of the field
              *
              * For instance, if the name of the field is "accountHolderName", then the
@@ -212,7 +212,7 @@ public abstract class Money
              */
             String validatorMethod = String.format("validate_%s", fieldName);
 
-            /**
+            /*
              * Checks if all the 'validator' methods have been implemented.
              * Ideally, the validator methods should return a HashMap of the validation
              * results together with an error message whenever applicable.
@@ -249,9 +249,9 @@ public abstract class Money
     }
 
     /**
-     * Checks all the essential fields, returning an ArrayList of all the validation results
+     * Saves the fields into the database in an encrypted format
      *
-     * @return
+     * @return A string representation of the id of the saved object
      */
     public String saveCoin() throws Exception
     {
@@ -309,7 +309,7 @@ public abstract class Money
 
         String payload = new Gson().toJson(validatedFields);
 
-        String encrypted_msg = enigma.encryptText(payload, enigma.getPrivate(PRIVATE_KEY));
+        String encrypted_msg = enigma.encryptText(payload, enigma.getPrivate());
 
         Store store = new Store();
 
@@ -326,26 +326,23 @@ public abstract class Money
 
 
     /**
-     * Retrieves a coin from the store and displays it
+     * Retrieves a coin from the store and displays its value
      *
-     * @return
+     * @return A decrypted string of the value obtained from the database
      */
     public String showCoin(String coinId)
     {
-        String coin = null;
+        Store store = new Store();
 
         try
         {
-            Store store = new Store();
-
-            coin = enigma.decryptText((String) store.displayCoin(coinId), enigma.getPublic(PUBLIC_KEY));
+            return enigma.decryptText((String) store.displayCoin(coinId), enigma.getPublic());
         }
         catch (Exception ex)
         {
             ex.printStackTrace();
+
+            return null;
         }
-
-        return coin;
     }
-
 }

@@ -57,11 +57,11 @@ public class Kenya extends Money
     {
         ArrayList fields = new ArrayList();
 
-        HashMap<String, Object> accountNumber = new HashMap();
+        HashMap<String, String> accountNumber = new HashMap<>();
         accountNumber.put("name", "accountNumber");
         accountNumber.put("label", "Account Number");
 
-        HashMap<String, Object> accountHolderName = new HashMap();
+        HashMap<String, String> accountHolderName = new HashMap<>();
         accountHolderName.put("name", "accountHolderName");
         accountHolderName.put("label", "Account Holder Name");
 

@@ -7,6 +7,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -18,19 +19,23 @@ import static java.nio.file.Files.readAllBytes;
 /**
  * Encrypt and decrypt strings and texts
  */
-public class Enigma
+class Enigma
 {
     private Cipher cipher;
+
+    /**
+     * Initialize a LockSmith object in order to create any keys that may be missing
+     */
     private LockSmith lockSmith = new LockSmith();
 
     /**
      * Instantiate the class and encryption algorithm
      *
-     * @throws NoSuchAlgorithmException
-     * @throws NoSuchPaddingException
-     * @throws NoSuchProviderException
+     * @throws NoSuchAlgorithmException An exception with the CIPHER_ALGORITHM in place
+     * @throws NoSuchPaddingException An exception with the CIPHER_ALGORITHM in place
+     * @throws NoSuchProviderException Missing or invalid encryption provider
      */
-    public Enigma() throws NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException
+    Enigma() throws NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException
     {
         this.cipher = Cipher.getInstance(CIPHER_ALGORITHM);
     }
@@ -39,13 +44,16 @@ public class Enigma
      * Provide a PrivateKey from the encryption algorithm according to the details at
      * https://docs.oracle.com/javase/8/docs/api/java/security/spec/PKCS8EncodedKeySpec.html
      *
-     * @param filename The SSH private key file
-     * @return a PrivateKey that can be used for data decryption
-     * @throws Exception
+     * @return  a PrivateKey that can be used for data decryption
+     * @throws IOException Input/output exception arising from reading the key file
+     * @throws InvalidKeySpecException The key file not being a valid key file
+     * @throws NoSuchAlgorithmException An exception with the CIPHER_ALGORITHM in place
      */
-    public PrivateKey getPrivate(String filename) throws Exception
+    PrivateKey getPrivate()
+            throws IOException, InvalidKeySpecException, NoSuchAlgorithmException
     {
-        byte[] keyBytes = readAllBytes(new File(filename).toPath());
+        // The public key at any one time will be LockSmith.PRIVATE_KEY
+        byte[] keyBytes = readAllBytes(new File(LockSmith.PRIVATE_KEY).toPath());
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(CIPHER_ALGORITHM);
         return kf.generatePrivate(spec);
@@ -55,16 +63,16 @@ public class Enigma
      * Provide a PublicKey from the encryption algorithm according to the details at
      * https://docs.oracle.com/javase/8/docs/api/java/security/spec/X509EncodedKeySpec.html
      *
-     * @param filename The SSH private key file
      * @return a PublicKey for data encryption
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeySpecException
+     * @throws IOException Input/output exception arising from reading the key file
+     * @throws NoSuchAlgorithmException An exception with the CIPHER_ALGORITHM in place
+     * @throws InvalidKeySpecException The key file not being a valid key file
      */
-    public PublicKey getPublic(String filename)
+    PublicKey getPublic()
             throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
     {
-        byte[] keyBytes = readAllBytes(new File(filename).toPath());
+        // The public key at any one time will be LockSmith.PUBLIC_KEY
+        byte[] keyBytes = readAllBytes(new File(LockSmith.PUBLIC_KEY).toPath());
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(CIPHER_ALGORITHM);
         return kf.generatePublic(spec);
@@ -76,10 +84,10 @@ public class Enigma
      * @param input  The file to be encrypted
      * @param output The encrypted file that is the output of the encryption process
      * @param key    The PrivateKey that is used for the encryption
-     * @throws IOException
-     * @throws GeneralSecurityException
+     * @throws IOException Input/output exception arising from reading the key file
+     * @throws GeneralSecurityException A general exception with the security during encryption
      */
-    public void encryptFile(byte[] input, File output, PrivateKey key)
+    void encryptFile(byte[] input, File output, PrivateKey key)
             throws IOException, GeneralSecurityException
     {
         this.cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -92,10 +100,10 @@ public class Enigma
      * @param input  The file to be decrypted
      * @param output The decrypted file that is the output of the decryption process
      * @param key    The PublicKey that is used for the encryption
-     * @throws IOException
-     * @throws GeneralSecurityException
+     * @throws IOException Input/output exception arising from reading the key file
+     * @throws GeneralSecurityException A general exception with the security during decryption
      */
-    public void decryptFile(byte[] input, File output, PublicKey key)
+    void decryptFile(byte[] input, File output, PublicKey key)
             throws IOException, GeneralSecurityException
     {
         this.cipher.init(Cipher.DECRYPT_MODE, key);
@@ -107,9 +115,7 @@ public class Enigma
      *
      * @param output  The file to be written
      * @param toWrite The data into which to write the file
-     * @throws IllegalBlockSizeException
-     * @throws BadPaddingException
-     * @throws IOException
+     * @throws IOException Input/output exception arising from reading the key file
      */
     private void writeToFile(File output, byte[] toWrite)
             throws IOException
@@ -126,18 +132,17 @@ public class Enigma
      * @param msg The string to be encrypted
      * @param key The PrivateKey to be used to encrypt the text
      * @return The encrypted text
-     * @throws UnsupportedEncodingException
-     * @throws IllegalBlockSizeException
-     * @throws BadPaddingException
-     * @throws InvalidKeyException
+     * @throws IllegalBlockSizeException Exception with the block size of the msg
+     * @throws BadPaddingException Exception with the passing size of the msg
+     * @throws InvalidKeyException The key file not being a valid key file
      */
-    public String encryptText(String msg, PrivateKey key)
-            throws UnsupportedEncodingException, IllegalBlockSizeException,
+    String encryptText(String msg, PrivateKey key)
+            throws IllegalBlockSizeException,
             BadPaddingException, InvalidKeyException
     {
         this.cipher.init(Cipher.ENCRYPT_MODE, key);
 
-        return Base64.encodeBase64String(cipher.doFinal(msg.getBytes("UTF-8")));
+        return Base64.encodeBase64String(cipher.doFinal(msg.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
@@ -146,32 +151,15 @@ public class Enigma
      * @param msg The cryptic text that is to be decrypted
      * @param key The PublicKey to be used to decrypt the message
      * @return The decrypted text
-     * @throws InvalidKeyException
-     * @throws UnsupportedEncodingException
-     * @throws IllegalBlockSizeException
-     * @throws BadPaddingException
+     * @throws InvalidKeyException The key file not being a valid key file
+     * @throws IllegalBlockSizeException Exception with the block size of the msg
+     * @throws BadPaddingException Exception with the padding size of the msg
      */
-    public String decryptText(String msg, PublicKey key)
-            throws InvalidKeyException, UnsupportedEncodingException,
+    String decryptText(String msg, PublicKey key)
+            throws InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException
     {
         this.cipher.init(Cipher.DECRYPT_MODE, key);
-        return new String(cipher.doFinal(Base64.decodeBase64(msg)), "UTF-8");
-    }
-
-    /**
-     * Reads a file and extracts the contents into an array of bytes
-     *
-     * @param file The input file
-     * @return The contents of the file in an array of bytes
-     * @throws IOException
-     */
-    public byte[] getFileInBytes(File file) throws IOException
-    {
-        FileInputStream fis = new FileInputStream(file);
-        byte[] bytes = new byte[(int) file.length()];
-        fis.read(bytes);
-        fis.close();
-        return bytes;
+        return new String(cipher.doFinal(Base64.decodeBase64(msg)), StandardCharsets.UTF_8);
     }
 }

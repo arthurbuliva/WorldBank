@@ -1,27 +1,21 @@
 package core;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- * Encoder and decoder
+ * String Encoder and decoder
  */
 public class Codex
 {
-    private static Cipher ecipher;
-    private static Cipher dcipher;
-    private static SecretKey key;
 
     /**
      * Encode using Base64 a given string
-     * @param plainText
-     * @return
+     *
+     * @param plainText The text to be encoded
+     * @return The encoded text
      */
     public static String encode(String plainText)
     {
@@ -33,8 +27,9 @@ public class Codex
 
     /**
      * Decode using Base64 a given encoded string
-     * @param encodedString
-     * @return
+     *
+     * @param encodedString The encoded string to be decoded
+     * @return The decoded String
      */
     public static String decode(String encodedString)
     {
@@ -45,9 +40,10 @@ public class Codex
     }
 
     /**
-     * Decode using SHA256 a given encoded string
-     * @param text
-     * @return
+     * Get the SHA256 encoding of a given
+     *
+     * @param text The String to encode to Sha256
+     * @return The encoded string
      */
     public static String sha256(String text)
     {
@@ -59,7 +55,7 @@ public class Codex
 
             return encoded;
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
             exception.printStackTrace();
         }

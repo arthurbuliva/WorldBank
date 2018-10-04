@@ -3,28 +3,28 @@ package core;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 
-public class LockSmith
+class LockSmith
 {
 
     private KeyPairGenerator keyGen;
-    private KeyPair pair;
     private PrivateKey privateKey;
     private PublicKey publicKey;
 
     public static final String PRIVATE_KEY = "keys/private.key";
     public static final String PUBLIC_KEY = "keys/public.key";
-    public static final String CIPHER_ALGORITHM = "RSA";
-    public static final int KEY_SIZE = 9999;
+    static final String CIPHER_ALGORITHM = "RSA";
 
-    public LockSmith() throws NoSuchAlgorithmException, NoSuchProviderException
+    /**
+     * Instantiate the LockSmith
+     *
+     * @throws NoSuchAlgorithmException Missing Cipher algorithm
+     */
+    LockSmith() throws NoSuchAlgorithmException
     {
+        int KEY_SIZE = 9999;
+
         this.keyGen = KeyPairGenerator.getInstance(CIPHER_ALGORITHM);
         this.keyGen.initialize(KEY_SIZE);
 
@@ -33,6 +33,9 @@ public class LockSmith
 
         if (!publicKeyFile.exists() || !privateKeyFile.exists())
         {
+            /*
+             * Create the necessary file directory structures to hold the keys
+             */
             publicKeyFile.getParentFile().mkdirs();
             privateKeyFile.getParentFile().mkdirs();
 
@@ -42,40 +45,64 @@ public class LockSmith
                 writeToFile(PUBLIC_KEY, getPublicKey().getEncoded());
                 writeToFile(PRIVATE_KEY, getPrivateKey().getEncoded());
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 ex.printStackTrace();
+
+                /*
+                 * We would not be able to encrypt the data. There is no need to proceed
+                 */
+                System.exit(1);
             }
         }
     }
 
-    public void createKeys()
+    /**
+     * Create the private and public keys, storing them into local files
+     */
+    private void createKeys()
     {
         System.out.println("Generating first time encryption keys. This will take a while...");
         // TODO: Once the keys are generated, deleting them causes a decryption error. Fix this
 
-        this.pair = this.keyGen.generateKeyPair();
+        KeyPair pair = this.keyGen.generateKeyPair();
         this.privateKey = pair.getPrivate();
         this.publicKey = pair.getPublic();
     }
 
-    public PrivateKey getPrivateKey()
+    /**
+     * Extracts the private key from the key pair
+     *
+     * @return The private key
+     */
+    private PrivateKey getPrivateKey()
     {
         return this.privateKey;
     }
 
-    public PublicKey getPublicKey()
+    /**
+     * Extracts the public key from the key pair
+     *
+     * @return The public key
+     */
+    private PublicKey getPublicKey()
     {
         return this.publicKey;
     }
 
-    public void writeToFile(String path, byte[] key) throws IOException
+    /**
+     * Write data to file
+     * @param path The file into which the data is to be written
+     * @param data The data to be written
+     * @throws IOException Exception during the file writing operation
+     */
+    private void writeToFile(String path, byte[] data) throws IOException
     {
         File f = new File(path);
         f.getParentFile().mkdirs();
 
         FileOutputStream fos = new FileOutputStream(f);
-        fos.write(key);
+        fos.write(data);
         fos.flush();
         fos.close();
     }

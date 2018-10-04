@@ -1,26 +1,28 @@
 package core;
 
 import java.io.File;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.Base64;
-import java.util.HashMap;
 
 /**
- * Safekeeping of stuff
+ * Safekeeping of the coins into the database
  */
-public final class Store
+final class Store
 {
     // The database in which to store our coins
     private static final String VAULT = "jdbc:sqlite:silo/coins.db";
 
-    protected Store()
+    /**
+     * Initialize the Store
+     */
+    Store()
     {
         File vaultLocation = new File("silo");
 
         if (!vaultLocation.exists())
         {
+            /*
+             * Create the necessary folders to hold the SQLite database
+             */
             vaultLocation.mkdirs();
 
             try
@@ -35,7 +37,14 @@ public final class Store
         }
     }
 
-    protected boolean saveCoin(String serialNumber, String value)
+    /**
+     * Stores data into the database
+     *
+     * @param serialNumber The key with which to store the data
+     * @param value        The actual value to be stored
+     * @return True if successfully saved, false otherwise
+     */
+    boolean saveCoin(String serialNumber, String value)
     {
         try (Connection connection = DriverManager.getConnection(VAULT))
         {
@@ -59,7 +68,13 @@ public final class Store
         }
     }
 
-    protected Object displayCoin(String serialNumber)
+    /**
+     * Extracts a given piece of data from the database
+     *
+     * @param serialNumber The id which we need to use to get the required data
+     * @return The encrypted value as stored in the database
+     */
+    Object displayCoin(String serialNumber)
     {
         String coin = null;
 
@@ -95,6 +110,9 @@ public final class Store
         return coin;
     }
 
+    /**
+     * Initialize the storage tables
+     */
     private void constructStore()
     {
         try (Connection connection = DriverManager.getConnection(VAULT))

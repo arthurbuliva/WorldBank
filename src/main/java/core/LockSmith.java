@@ -98,12 +98,12 @@ class LockSmith
      */
     private void writeToFile(String path, byte[] data) throws IOException
     {
-        File f = new File(path);
-        f.getParentFile().mkdirs();
+        File file = new File(path);
+        file.getParentFile().mkdirs();
 
-        FileOutputStream fos = new FileOutputStream(f);
-        fos.write(data);
-        fos.flush();
-        fos.close();
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        fileOutputStream.write(data);
+        fileOutputStream.flush();
+        fileOutputStream.close();
     }
 }

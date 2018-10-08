@@ -1,10 +1,21 @@
 package core;
 
 import com.google.gson.Gson;
+import exceptions.*;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,9 +32,9 @@ public abstract class Money
 
     public abstract String getCurrencyCode();
 
-    private Enigma enigma = new Enigma();
+    private Enigma enigma;
 
-    private LockSmith lockSmith = new LockSmith();
+    private LockSmith lockSmith;
 
     /**
      * FieldTypes that we need in order to validateValues any currency
@@ -53,10 +64,18 @@ public abstract class Money
     /**
      * Constructor of the Money class
      *
-     * @param values The values of the essential fields as a HashMap
-     * @throws Exception
+     * @param values The values of the essential, optional and derived fields as an ArrayList of HashMaps
+     * @throws NoSuchMethodException              Undefined validator methods
+     * @throws IncompleteFieldDefinitionException Field definition is incomplete
+     * @throws FieldClashException           Attempting to define optional field with the same name as an essential field
+     * @throws InvalidInputException              Inputting a value that is not expected
+     * @throws NoSuchPaddingException             Invalid padding in the key file
+     * @throws NoSuchAlgorithmException           Invalid encryption algorithm
+     * @throws NoSuchProviderException            Invalid encryption provider
      */
-    public Money(HashMap<String, String> values) throws Exception
+    public Money(HashMap<String, String> values) throws NoSuchMethodException,
+            IncompleteFieldDefinitionException, FieldClashException, InvalidInputException,
+            NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException
     {
         /*
          * Check if all the validators exist
@@ -72,6 +91,12 @@ public abstract class Money
          * Set the values that were entered while initializing into the fields
          */
         injectFields(values);
+
+        /*
+         Initialize the encryption classes
+         */
+        enigma = new Enigma();
+        lockSmith = new LockSmith();
     }
 
     /**
@@ -101,9 +126,9 @@ public abstract class Money
     /**
      * Sets the values into the fields
      */
-    private void injectFields(HashMap<String, ?> values) throws Exception
+    private void injectFields(HashMap<String, ?> values) throws FieldClashException, InvalidInputException
     {
-        ArrayList injectedFields = new ArrayList();
+        ArrayList<HashMap<String, Object>> injectedFields = new ArrayList<>();
 
         /*
          * Get all the essential fields
@@ -123,7 +148,7 @@ public abstract class Money
             // This is a redundant check!
             if (((HashMap<String, Object>) field).containsKey(fieldName))
             {
-                throw new Exception(
+                throw new FieldClashException(
                         String.format("Cannot add %s as an optional field because it" +
                                         " is already defined as an essential field",
                                 fieldName
@@ -163,7 +188,7 @@ public abstract class Money
             }
             catch (NoSuchMethodException ex)
             {
-                throw new Exception(
+                throw new InvalidInputException(
                         String.format("%s is not a valid input parameter for %s",
                                 entry.getKey(), this.getClass().getSimpleName()
                         )
@@ -180,14 +205,18 @@ public abstract class Money
         this.values = injectedFields;
     }
 
+
     /**
      * Checks that the validators defined in essentialFields() exist
      * <p>
-     * Each of the essentialFields must have a way to validateValues its value. This is
+     * Each of the essentialFields must have a way to validateValues its input values. This is
      * defined in the 'validator' parameter in each of the field. The exact
-     * validator methods need to be defined in each respective Currency class.
+     * validator methods need to be concretely defined in each respective Currency class.
+     *
+     * @throws IncompleteFieldDefinitionException Field definition is incomplete
+     * @throws NoSuchMethodException              Validator methods do not exist
      */
-    private void checkValidators() throws Exception
+    private void checkValidators() throws IncompleteFieldDefinitionException, NoSuchMethodException
     {
         ArrayList fields = essentialFields();
 
@@ -201,7 +230,7 @@ public abstract class Money
 
             if (fieldName == null)
             {
-                throw new Exception("The 'name' attribute of one or more fields has not been defined");
+                throw new IncompleteFieldDefinitionException("The 'name' attribute of one or more fields has not been defined");
             }
 
             /*
@@ -226,11 +255,15 @@ public abstract class Money
     }
 
     /**
-     * Checks all the essential fields, returning an ArrayList of all the validation results
+     * Invokes the validation of the input fields
      *
-     * @return An arraylist of all validation errors whenever applicable
+     * @return An ArrayList containing the validation results
+     * @throws IllegalAccessException      Validator methods defined with the incorrect accessibility
+     * @throws InvocationTargetException   Validator method invocation exception
+     * @throws UndefinedValidatorException Validator has not been defined
      */
-    public ArrayList validateValues() throws Exception
+    public ArrayList<HashMap<String, Object>> validateValues() throws IllegalAccessException,
+            InvocationTargetException, UndefinedValidatorException
     {
         ArrayList validation = new ArrayList();
 
@@ -240,22 +273,47 @@ public abstract class Money
 
             String validatorMethod = String.format("validate_%s", fieldName);
 
-            Method method = this.getClass().getDeclaredMethod(validatorMethod);
+            Method method;
 
-            validation.add(method.invoke(this));
+            try
+            {
+                method = this.getClass().getDeclaredMethod(validatorMethod);
+                validation.add(method.invoke(this));
+            }
+            catch (NoSuchMethodException exception)
+            {
+                throw new UndefinedValidatorException(
+                        String.format("Validation method %s has not been defined for field %s",
+                                validatorMethod, fieldName)
+                );
+            }
         }
 
         return validation;
     }
 
     /**
-     * Saves the fields into the database in an encrypted format
+     * Saves the fields into the database
      *
-     * @return A string representation of the id of the saved object
+     * @return The id of the saved object
+     * @throws FieldValidationException    Exception when validating a field
+     * @throws UndefinedValidatorException Validator has not been defined
+     * @throws IllegalAccessException      Validator methods defined with the incorrect accessibility
+     * @throws InvocationTargetException   Validator method invocation exception
+     * @throws InvalidKeySpecException     Encryption key specifications are invalid
+     * @throws NoSuchAlgorithmException    Invalid encryption algorithm
+     * @throws IOException                 Input/Output exception when reading the encryption keys from file
+     * @throws BadPaddingException         Invalid padding in the key file
+     * @throws InvalidKeyException         Encryption keys are invalid
+     * @throws IllegalBlockSizeException   Invalid block size in the key file
+     * @throws StorageEncodingException    Could not encode the data
      */
-    public String saveCoin() throws Exception
+    public String saveCoin() throws FieldValidationException, UndefinedValidatorException, IllegalAccessException,
+            InvocationTargetException, InvalidKeySpecException, NoSuchAlgorithmException,
+            IOException, BadPaddingException, InvalidKeyException, IllegalBlockSizeException,
+            StorageEncodingException
     {
-        ArrayList validatedFields = validateValues();
+        ArrayList<HashMap<String, Object>> validatedFields = validateValues();
 
         for (Object field : validatedFields)
         {
@@ -282,38 +340,43 @@ public abstract class Money
             {
                 String errorMessage = (String) ((HashMap<String, Object>) field).get("errorMessage");
 
-                throw new Exception(
+                throw new FieldValidationException(
                         String.format("Could not validate input %s: %s",
                                 fieldName, errorMessage)
                 );
             }
         }
 
-        /**
+        /*
          * If we reach this point of the code, all the fields have values
          * and they have all been validated OK. We now need to save the values and return an ID
          * of the saved data.
-         *
-         * The key of this value will be the hash of the input values
          */
         String valuesAsJSON = new Gson().toJson(values);
 
-        String storageKey = Codex.encode(Codex.sha256(Codex.encode(String.format("%s.%s", getCountryName(), valuesAsJSON))));
+        /*
+         * The storage key of this value will be the hash of the input values
+         */
+        String storageKey = Codex.encode(
+                Objects.requireNonNull(Codex.sha256(
+                        Codex.encode(
+                                String.format("%s.%s", getCountryName(), valuesAsJSON)
+                        )
+                ))
+        );
 
-        // TODO: ("Encode these or encrypt them otherwise because GDPR");
-
-        HashMap<String, String> coin = new HashMap<>();
+        HashMap<String, Object> coin = new HashMap<>();
         coin.put("coinId", storageKey);
-
         validatedFields.add(coin);
 
-        String payload = new Gson().toJson(validatedFields);
-
-        String encrypted_msg = enigma.encryptText(payload, enigma.getPrivate());
+        /*
+         * Encrypt the payload
+         */
+        String payload = enigma.encryptText(new Gson().toJson(validatedFields), enigma.getPrivate());
 
         Store store = new Store();
 
-        if (store.saveCoin(storageKey, encrypted_msg))
+        if (store.saveCoin(storageKey, payload))
         {
 //            return validatedFields;
             return storageKey;
@@ -324,11 +387,11 @@ public abstract class Money
         }
     }
 
-
     /**
      * Retrieves a coin from the store and displays its value
      *
-     * @return A decrypted string of the value obtained from the database
+     * @param coinId The id of the coin to be retrieved
+     * @return A decrypted string of the values
      */
     public String showCoin(String coinId)
     {

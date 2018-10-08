@@ -1,5 +1,7 @@
 package core;
 
+import exceptions.StorageEncodingException;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -17,7 +19,7 @@ class Codex
      * @param plainText The text to be encoded
      * @return The encoded text
      */
-    static String encode(String plainText)
+    static String encode(String plainText) throws StorageEncodingException
     {
         byte[] encodedBytes = Base64.getEncoder().withoutPadding().encode(plainText.getBytes(StandardCharsets.UTF_8));
 

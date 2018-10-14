@@ -1,5 +1,6 @@
 package test;
 
+import core.Money;
 import currency.Kenya;
 
 import java.util.HashMap;
@@ -14,11 +15,14 @@ public class CreateCoin
         values.put("accountHolderAddress", "Amsterdam, The Netherlands");
         values.put("BIC", "ABNANL2A");
 
-        Kenya kenya = new Kenya(values);
 
-        String coin = kenya.saveCoin();
+        System.out.println(values);
+
+        Money money = new Kenya(values);
+
+        String coin = money.saveCoin();
 
         System.out.println(coin);
-        System.out.println(kenya.showCoin(coin));
+//        System.out.println(money.showCoin(coin));
     }
 }

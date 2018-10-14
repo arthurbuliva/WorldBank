@@ -1,7 +1,13 @@
 package currency;
 
 import core.Money;
+import exceptions.FieldClashException;
+import exceptions.IncompleteFieldDefinitionException;
+import exceptions.InvalidInputException;
 
+import javax.crypto.NoSuchPaddingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -23,7 +29,11 @@ public class Kenya extends Money
      * DO NOT modify these values once they have started being used
      */
 
-    public Kenya(HashMap<String, String> values) throws Exception
+    public Kenya(HashMap<String, String> values) throws
+            NoSuchMethodException, InvalidInputException,
+            NoSuchPaddingException, IncompleteFieldDefinitionException,
+            NoSuchAlgorithmException, NoSuchProviderException,
+            FieldClashException
     {
         super(values);
     }

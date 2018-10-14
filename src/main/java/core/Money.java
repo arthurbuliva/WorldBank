@@ -118,6 +118,7 @@ public abstract class Money
              */
             if (userValue == null)
             {
+                // TODO: Do we really need to throw a NullPointerException here?
                 throw new NullPointerException(String.format("Essential field '%s' must have a value", fieldName));
             }
         }

@@ -96,19 +96,11 @@ public class MintController
      * @throws UndefinedValidatorException
      * @throws InvocationTargetException
      * @throws NoSuchMethodException
-     * @throws InvalidInputException
-     * @throws NoSuchPaddingException
-     * @throws IncompleteFieldDefinitionException
-     * @throws NoSuchAlgorithmException
-     * @throws NoSuchProviderException
-     * @throws FieldClashException
-     */
+      */
     @RequestMapping("/validate")
     public String validate(@RequestBody String data) throws
             IOException, IllegalAccessException, UndefinedValidatorException,
-            InvocationTargetException, NoSuchMethodException, InvalidInputException,
-            NoSuchPaddingException, IncompleteFieldDefinitionException, NoSuchAlgorithmException,
-            NoSuchProviderException, FieldClashException
+            InvocationTargetException, NoSuchMethodException, ClassNotFoundException, InstantiationException
     {
         ArrayList supportMatrix = SupportMatrix.supportMatrix();
 
@@ -155,25 +147,14 @@ public class MintController
 
         map.remove("country");
 
-        Money money = null;
+        // Dynamically determine the appropriate Money instance to invoke the validation against
+        Constructor<?> constructor = Class.forName(String.format("currency.%s", countryName))
+                .getConstructor(HashMap.class);
+        Object instance = constructor.newInstance(map);
 
-        // TODO: Make this list dynamic
-        switch (countryName.toUpperCase())
-        {
-            case "KENYA":
-            {
-                money = new Kenya(map);
-            }
-            break;
-            default:
-            {
-//                throw new Exception("Unsupported country");
-            }
-            break;
-        }
+        Money money = (Money) instance;
 
         return gson.toJson(money.validateValues());
-
     }
 
     /**
@@ -187,7 +168,9 @@ public class MintController
      * @throws IOException
      */
     @RequestMapping("/save")
-    public String mintCoin(@RequestBody String data) throws InvocationTargetException, IllegalAccessException, UndefinedValidatorException, IOException, NoSuchMethodException, InvalidInputException, NoSuchPaddingException, IncompleteFieldDefinitionException, NoSuchAlgorithmException, NoSuchProviderException, FieldClashException
+    public String mintCoin(@RequestBody String data)
+            throws InvocationTargetException, IllegalAccessException, UndefinedValidatorException,
+            IOException, NoSuchMethodException, InstantiationException, ClassNotFoundException
     {
         return validate(data);
 

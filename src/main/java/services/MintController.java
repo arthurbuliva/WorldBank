@@ -4,30 +4,32 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.internal.LinkedTreeMap;
 import core.Money;
 import core.SupportMatrix;
-import currency.Kenya;
-import exceptions.FieldClashException;
-import exceptions.IncompleteFieldDefinitionException;
-import exceptions.InvalidInputException;
+import exceptions.FieldValidationException;
+import exceptions.StorageEncodingException;
 import exceptions.UndefinedValidatorException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.crypto.NoSuchPaddingException;
-import java.io.File;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.util.*;
+import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 public class MintController
@@ -96,7 +98,7 @@ public class MintController
      * @throws UndefinedValidatorException
      * @throws InvocationTargetException
      * @throws NoSuchMethodException
-      */
+     */
     @RequestMapping("/validate")
     public String validate(@RequestBody String data) throws
             IOException, IllegalAccessException, UndefinedValidatorException,
@@ -170,56 +172,53 @@ public class MintController
     @RequestMapping("/save")
     public String mintCoin(@RequestBody String data)
             throws InvocationTargetException, IllegalAccessException, UndefinedValidatorException,
-            IOException, NoSuchMethodException, InstantiationException, ClassNotFoundException
+            IOException, NoSuchMethodException, InstantiationException, ClassNotFoundException, BadPaddingException,
+            NoSuchAlgorithmException, FieldValidationException, IllegalBlockSizeException, StorageEncodingException,
+            InvalidKeyException, InvalidKeySpecException
     {
-        return validate(data);
+        ObjectMapper mapper = new ObjectMapper();
 
-        //convert json to array list
-        // Then crawl checking if there is an error
+        HashMap<String, String> map = mapper.readValue(data, new TypeReference<Map<String, String>>()
+        {
+        });
 
-//        ObjectMapper mapper = new ObjectMapper();
-//        HashMap<String, String> map = mapper.readValue(data, new TypeReference<Map<String, String>>()
-//        {
-//        });
-//
-//        String countryName = map.get("country");
-//        map.remove("country");
-//
-//        Money money = null;
-//
-//        switch (countryName.toUpperCase())
-//        {
-//            case "KENYA":
-//            {
-//                money = new Kenya(map);
-//            }
-//            break;
-//            default:
-//            {
-////                throw new Exception("Unsupported country");
-//            }
-//            break;
-//        }
-//
-//        try
-//        {
-//            //TODO: What if before attempting to save we first validate? This way we do prior checks before proceeding
-//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//            String json = gson.toJson(money.showCoin(money.saveCoin()));
-//
-//            return json;
-//        }
-//        catch (NullPointerException ex)
-//        {
-//            HashMap error = new HashMap();
-//
-//            error.put("country", countryName);
-//            error.put("errorMessage", String.format("%s is unsupported", countryName));
-//
-//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//            String json = gson.toJson(error);
-//
-//            return json;
-//        }
+        String countryName = map.get("country");
+
+        String validity = validate(data);
+
+        Gson gson = new Gson();
+
+        Type listType = new TypeToken<ArrayList<HashMap>>()
+        {
+        }.getType();
+
+        ArrayList<HashMap> validatedDataList = gson.fromJson(validity, listType);
+
+        HashMap<String, String> toBeSaved = new HashMap<>();
+
+        for(Object values : validatedDataList)
+        {
+            HashMap inputValues = (HashMap) values;
+
+            Boolean isValid = (Boolean) inputValues.get("validity");
+
+            if(!isValid)
+            {
+                return validity;
+            }
+
+            toBeSaved.put((String) inputValues.get("field"), (String) inputValues.get("inputValue"));
+        }
+
+        System.out.println(toBeSaved);
+
+        // Dynamically determine the appropriate Money instance to invoke the validation against
+        Constructor<?> constructor = Class.forName(String.format("currency.%s", countryName))
+                .getConstructor(HashMap.class);
+        Object instance = constructor.newInstance(toBeSaved);
+
+        Money money = (Money) instance;
+
+        return money.showCoin(money.saveCoin());
     }
 }

@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.internal.LinkedTreeMap;
 import core.Money;
 import core.SupportMatrix;
 import exceptions.FieldValidationException;
@@ -28,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -176,6 +174,7 @@ public class MintController
             NoSuchAlgorithmException, FieldValidationException, IllegalBlockSizeException, StorageEncodingException,
             InvalidKeyException, InvalidKeySpecException
     {
+        // TODO: Use proper variable names
         ObjectMapper mapper = new ObjectMapper();
 
         HashMap<String, String> map = mapper.readValue(data, new TypeReference<Map<String, String>>()
@@ -209,8 +208,6 @@ public class MintController
 
             toBeSaved.put((String) inputValues.get("field"), (String) inputValues.get("inputValue"));
         }
-
-        System.out.println(toBeSaved);
 
         // Dynamically determine the appropriate Money instance to invoke the validation against
         Constructor<?> constructor = Class.forName(String.format("currency.%s", countryName))

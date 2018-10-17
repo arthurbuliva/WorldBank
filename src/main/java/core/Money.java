@@ -75,7 +75,7 @@ public abstract class Money
      */
     public Money(HashMap<String, String> values) throws NoSuchMethodException,
             IncompleteFieldDefinitionException, FieldClashException, InvalidInputException,
-            NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException
+            NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, FieldValidationException
     {
         /*
          * Check if all the validators exist
@@ -104,9 +104,9 @@ public abstract class Money
      * have a value attributed to them upon initialization
      *
      * @param values The values that have been input
-     * @throws NullPointerException In case any of the essential fields does not have a value
+     * @throws FieldValidationException In case any of the essential fields does not have a value
      */
-    private void checkValues(HashMap<String, ?> values) throws NullPointerException
+    private void checkValues(HashMap<String, ?> values) throws FieldValidationException
     {
         for (Object field : essentialFields())
         {
@@ -118,8 +118,7 @@ public abstract class Money
              */
             if (userValue == null)
             {
-                // TODO: Do we really need to throw a NullPointerException here?
-                throw new NullPointerException(String.format("Essential field '%s' must have a value", fieldName));
+                throw new FieldValidationException(String.format("Essential field '%s' must have a value", fieldName));
             }
         }
     }
@@ -386,6 +385,47 @@ public abstract class Money
         {
             return null;
         }
+    }
+
+    /**
+     * Check if an input value is a trivial entity such as 123456 or ABCDEF
+     * @param input The value to be checked
+     * @return true if value is trivial, false otherwise
+     */
+    public boolean isTrivial(String input)
+    {
+        if(input.isEmpty()) return true;
+
+        ArrayList<Integer> differences = new ArrayList<>();
+
+        char[] inputArray = input.toCharArray();
+
+        for (int i = 0; i < inputArray.length - 1; i++)
+        {
+            if(input.matches("\\d+")) // Input is a number
+            {
+                differences.add(inputArray[i + 1] - inputArray[i]);
+            }
+            else
+            {
+                int x = Character.getNumericValue(inputArray[i + 1]);
+                int y = Character.getNumericValue(inputArray[i]);
+
+                differences.add(x - y);
+            }
+        }
+
+        boolean isTrivial = true;
+
+        for (int i = 0; i < differences.size() - 1; i++)
+        {
+            if (differences.get(i) != differences.get(i + 1))
+            {
+                isTrivial = false;
+            }
+        }
+
+        return isTrivial;
     }
 
     /**

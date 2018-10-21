@@ -2,6 +2,7 @@ package currency;
 
 import core.Money;
 import exceptions.FieldClashException;
+import exceptions.FieldValidationException;
 import exceptions.IncompleteFieldDefinitionException;
 import exceptions.InvalidInputException;
 
@@ -13,27 +14,12 @@ import java.util.HashMap;
 
 public class Kenya extends Money
 {
-    /**
-     * Once you set these values, and the class starts to be in use,
-     * DO NOT and I repeat DO NOT modify the values because the encryption
-     * upon storage depends on them.
-     * Changing these values will mean that you cannot retrieve the
-     * values from storage
-     */
-    private final String COUNTRY = "Kenya";
-    private final String COUNTRY_CODE = "KE";
-    private final String CURRENCY_NAME = "Kenya Shilling";
-    private final String CURRENCY_CODE = "KES";
-    /**
-     * Just in case you missed it,
-     * DO NOT modify these values once they have started being used
-     */
 
     public Kenya(HashMap<String, String> values) throws
             NoSuchMethodException, InvalidInputException,
             NoSuchPaddingException, IncompleteFieldDefinitionException,
             NoSuchAlgorithmException, NoSuchProviderException,
-            FieldClashException
+            FieldClashException, FieldValidationException
     {
         super(values);
     }
@@ -41,31 +27,31 @@ public class Kenya extends Money
     @Override
     public String getCountryName()
     {
-        return COUNTRY;
+        return "Kenya";
     }
 
     @Override
     public String getCountryCode()
     {
-        return COUNTRY_CODE;
+        return "KE";
     }
 
     @Override
     public String getCurrencyName()
     {
-        return CURRENCY_NAME;
+        return "Kenya Shilling";
     }
 
     @Override
     public String getCurrencyCode()
     {
-        return CURRENCY_CODE;
+        return "KES";
     }
 
     @Override
     public ArrayList essentialFields()
     {
-        ArrayList fields = new ArrayList();
+        ArrayList<HashMap<String, String>> fields = new ArrayList<>();
 
         HashMap<String, String> accountNumber = new HashMap<>();
         accountNumber.put("name", "accountNumber");
@@ -83,7 +69,7 @@ public class Kenya extends Money
 
     public HashMap<?, ?> validate_accountHolderName()
     {
-        HashMap validationResults = new HashMap<>();
+        HashMap<String, Object> validationResults = new HashMap<>();
 
         String currentMethodName = Thread.currentThread().getStackTrace()[1].getMethodName();
 
@@ -107,6 +93,11 @@ public class Kenya extends Money
                     validationResults.put("validity", false);
                     validationResults.put("errorMessage", "Must be at least 3 characters long");
                 }
+                else if (isTrivial(inputValue))
+                {
+                    validationResults.put("validity", false);
+                    validationResults.put("errorMessage", "Trivial value detected");
+                }
                 else
                 {
                     validationResults.put("validity", true);
@@ -119,7 +110,7 @@ public class Kenya extends Money
 
     public HashMap<?, ?> validate_accountNumber()
     {
-        HashMap validationResults = new HashMap<>();
+        HashMap<String, Object> validationResults = new HashMap<>();
 
         String currentMethodName = Thread.currentThread().getStackTrace()[1].getMethodName();
 
@@ -145,14 +136,17 @@ public class Kenya extends Money
                     validationResults.put("validity", false);
                     validationResults.put("errorMessage", "Enter a valid account number");
                 }
+                else if (isTrivial(inputValue))
+                {
+                    validationResults.put("validity", false);
+                    validationResults.put("errorMessage", "Trivial value detected");
+                }
                 else
                 {
                     // Add a derived field if you want to
                     validationResults.put("accountNumberCode", inputValue.substring(0, 4));
                     validationResults.put("validity", true);
                 }
-
-
             }
         }
 
@@ -161,7 +155,7 @@ public class Kenya extends Money
 
     public HashMap<?, ?> validate_accountHolderAddress()
     {
-        HashMap validationResults = new HashMap<>();
+        HashMap<String, Object> validationResults = new HashMap<>();
 
         String currentMethodName = Thread.currentThread().getStackTrace()[1].getMethodName();
 
@@ -188,7 +182,7 @@ public class Kenya extends Money
 
     public HashMap<?, ?> validate_BIC()
     {
-        HashMap validationResults = new HashMap<>();
+        HashMap<String, Object> validationResults = new HashMap<>();
 
         String currentMethodName = Thread.currentThread().getStackTrace()[1].getMethodName();
 

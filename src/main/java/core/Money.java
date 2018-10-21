@@ -13,28 +13,53 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class Money
 {
-    /**
+    /*
      * Basic attributes of any currency implementation
+     * Once you set these values, and the class starts to be in use,
+     * DO NOT and I repeat DO NOT modify the values because the encryption
+     * upon storage depends on them.
+     * Changing these values will mean that you cannot retrieve the
+     * values from storage
+     */
+
+    /**
+     * The name of the country
+     * @return Name of the country eg "Botswana"
      */
     public abstract String getCountryName();
 
+    /**
+     * The country code
+     * @return 2-letter country code eg "BW"
+     */
     public abstract String getCountryCode();
 
+    /**
+     * The name of the currency
+     * @return Name of the currency eg "Botswana Pula"
+     */
     public abstract String getCurrencyName();
 
+    /**
+     * The currency code
+     * @return Currency code of the country eg "BWP"
+     */
     public abstract String getCurrencyCode();
+
 
     private Enigma enigma;
 
-    private LockSmith lockSmith;
+    /*
+     * Just in case you missed it,
+     * DO NOT modify these values once they have started being used
+     */
+
 
     /**
      * FieldTypes that we need in order to validateValues any currency
@@ -67,7 +92,7 @@ public abstract class Money
      * @param values The values of the essential, optional and derived fields as an ArrayList of HashMaps
      * @throws NoSuchMethodException              Undefined validator methods
      * @throws IncompleteFieldDefinitionException Field definition is incomplete
-     * @throws FieldClashException           Attempting to define optional field with the same name as an essential field
+     * @throws FieldClashException                Attempting to define optional field with the same name as an essential field
      * @throws InvalidInputException              Inputting a value that is not expected
      * @throws NoSuchPaddingException             Invalid padding in the key file
      * @throws NoSuchAlgorithmException           Invalid encryption algorithm
@@ -96,7 +121,6 @@ public abstract class Money
          Initialize the encryption classes
          */
         enigma = new Enigma();
-        lockSmith = new LockSmith();
     }
 
     /**
@@ -188,6 +212,8 @@ public abstract class Money
             }
             catch (NoSuchMethodException ex)
             {
+                // Validation method is missing which implies that this field is not valid.
+                // Mask this from the end user
                 throw new InvalidInputException(
                         String.format("%s is not a valid input parameter for %s",
                                 entry.getKey(), this.getClass().getSimpleName()
@@ -376,7 +402,7 @@ public abstract class Money
 
         Store store = new Store();
 
-        if (store.saveCoin(storageKey, payload))
+        if (store.saveCoin(storageKey, getCountryName(), payload))
         {
 //            return validatedFields;
             return storageKey;
@@ -389,64 +415,29 @@ public abstract class Money
 
     /**
      * Check if an input value is a trivial entity such as 123456 or ABCDEF
+     *
      * @param input The value to be checked
      * @return true if value is trivial, false otherwise
      */
-    public boolean isTrivial(String input)
+    protected boolean isTrivial(String input)
     {
-        if(input.isEmpty()) return true;
+        if (input.isEmpty())
+        {
+            return true;
+        }
 
-        ArrayList<Integer> differences = new ArrayList<>();
+        Set<Integer> differences = new HashSet<>();
 
         char[] inputArray = input.toCharArray();
 
         for (int i = 0; i < inputArray.length - 1; i++)
         {
-            if(input.matches("\\d+")) // Input is a number
-            {
-                differences.add(inputArray[i + 1] - inputArray[i]);
-            }
-            else
-            {
-                int x = Character.getNumericValue(inputArray[i + 1]);
-                int y = Character.getNumericValue(inputArray[i]);
+            int x = Character.getNumericValue(inputArray[i]);
+            int y = Character.getNumericValue(inputArray[i + 1]);
 
-                differences.add(x - y);
-            }
+            differences.add(x - y);
         }
 
-        boolean isTrivial = true;
-
-        for (int i = 0; i < differences.size() - 1; i++)
-        {
-            if (differences.get(i) != differences.get(i + 1))
-            {
-                isTrivial = false;
-            }
-        }
-
-        return isTrivial;
-    }
-
-    /**
-     * Retrieves a coin from the store and displays its value
-     *
-     * @param coinId The id of the coin to be retrieved
-     * @return A decrypted string of the values
-     */
-    public String showCoin(String coinId)
-    {
-        Store store = new Store();
-
-        try
-        {
-            return enigma.decryptText((String) store.displayCoin(coinId), enigma.getPublic());
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-
-            return null;
-        }
+        return differences.size() == 1;
     }
 }

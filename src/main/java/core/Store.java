@@ -42,18 +42,20 @@ final class Store
      *
      * @param serialNumber The key with which to store the data
      * @param value        The actual value to be stored
+     * @param country        The country associated with the value to be stored
      * @return True if successfully saved, false otherwise
      */
-    boolean saveCoin(String serialNumber, String value)
+    boolean saveCoin(String serialNumber, String country, String value)
     {
         try (Connection connection = DriverManager.getConnection(VAULT))
         {
             // Idempotent
-            String sql = "INSERT OR IGNORE INTO coins(serial_number, denomination) VALUES(?, ?)";
+            String sql = "INSERT OR IGNORE INTO coins(serial_number, country, denomination) VALUES(?, ?, ?)";
 
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, serialNumber);
-            statement.setString(2, value);
+            statement.setString(2, country);
+            statement.setString(3, value);
             statement.executeUpdate();
 
             connection.close();
@@ -76,7 +78,7 @@ final class Store
      */
     Object displayCoin(String serialNumber)
     {
-        String coin = null;
+        String coin = "";
 
         try (Connection connection = DriverManager.getConnection(VAULT))
         {
@@ -120,6 +122,7 @@ final class Store
             // SQL statement for creating a new table
             String sql = "CREATE TABLE coins(" +
                     "serial_number TEXT NOT NULL UNIQUE," +
+                    "country TEXT," +
                     "denomination TEXT," +
                     "valid_from DATE DEFAULT CURRENT_DATE," +
                     "validity INT DEFAULT 1," +

@@ -24,11 +24,6 @@ class Enigma
     private Cipher cipher;
 
     /**
-     * Initialize a LockSmith object in order to create any keys that may be missing
-     */
-    private LockSmith lockSmith = new LockSmith();
-
-    /**
      * Instantiate the class and encryption algorithm
      *
      * @throws NoSuchAlgorithmException An exception with the CIPHER_ALGORITHM in place
@@ -37,6 +32,11 @@ class Enigma
      */
     Enigma() throws NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException
     {
+        /**
+         * Initialize a LockSmith object in order to create any keys that may be missing
+         */
+        LockSmith lockSmith = new LockSmith();
+
         this.cipher = Cipher.getInstance(CIPHER_ALGORITHM);
     }
 

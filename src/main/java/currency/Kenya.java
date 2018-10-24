@@ -61,11 +61,28 @@ public class Kenya extends Money
         accountHolderName.put("name", "accountHolderName");
         accountHolderName.put("label", "Account Holder Name");
 
+        //TODO: Add support for PIN certificate as a file upload
+        HashMap<String, String> taxCertificate = new HashMap<>();
+        taxCertificate.put("name", "accountHolderName");
+        taxCertificate.put("label", "KRA PIN Certificate");
+
         fields.add(accountNumber);
+        fields.add(taxCertificate);
         fields.add(accountHolderName);
 
         return fields;
     }
+
+    /*
+     * We have to validate all the essential fields
+     * The syntax is validate_<fieldName>()
+     * The method returns a HashMap of the validation of the values.
+     * If you add a validation method of a non-essential field, it implies
+     * that the validation is an optional field. For example, you will see
+     * that there is a validate_BIC() method, yet there is no BIC defined as an
+     * essential field. This means that BIC is an optional field whose value
+     * will be accepted
+     */
 
     public HashMap<?, ?> validate_accountHolderName()
     {
@@ -205,6 +222,13 @@ public class Kenya extends Money
             }
         }
 
+        return validationResults;
+    }
+
+    //TODO: Work on this
+    public HashMap<?, ?> validate_accountHolderName()
+    {
+        HashMap<String, Object> validationResults = new HashMap<>();
         return validationResults;
     }
 

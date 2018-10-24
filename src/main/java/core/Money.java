@@ -413,6 +413,7 @@ public abstract class Money
         }
     }
 
+    //TODO: Move this to a Utils class
     /**
      * Check if an input value is a trivial entity such as 123456 or ABCDEF
      *

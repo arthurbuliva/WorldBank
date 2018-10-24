@@ -12,7 +12,7 @@ import java.util.Base64;
  */
 class Codex
 {
-
+//TODO: Move this to a Utils class
     /**
      * Encode using Base64 a given string
      *

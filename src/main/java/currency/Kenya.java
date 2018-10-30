@@ -12,6 +12,8 @@ import java.security.NoSuchProviderException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import static core.utils.MoneyUtils.isTrivial;
+
 public class Kenya extends Money
 {
 
@@ -61,9 +63,8 @@ public class Kenya extends Money
         accountHolderName.put("name", "accountHolderName");
         accountHolderName.put("label", "Account Holder Name");
 
-        //TODO: Add support for PIN certificate as a file upload
         HashMap<String, String> taxCertificate = new HashMap<>();
-        taxCertificate.put("name", "accountHolderName");
+        taxCertificate.put("name", "taxCertificate");
         taxCertificate.put("label", "KRA PIN Certificate");
 
         fields.add(accountNumber);
@@ -92,14 +93,14 @@ public class Kenya extends Money
 
         String fieldName = currentMethodName.replace("validate_", "");
 
-        for (Object value : values)
+        for (HashMap<String, Object> value : values)
         {
-            HashMap<String, Object> essentialField = (HashMap<String, Object>) value;
-
-            if (essentialField.get("name").equals(fieldName))
+            if (value.get("name").equals(fieldName))
             {
-                String inputValue = (String) essentialField.get("value");
+                String inputValue = (String) value.get("value");
+                String label = (String) value.get("label");
 
+                validationResults.put("label", label);
                 validationResults.put("field", fieldName);
                 validationResults.put("inputValue", inputValue);
 
@@ -133,14 +134,14 @@ public class Kenya extends Money
 
         String fieldName = currentMethodName.replace("validate_", "");
 
-        for (Object value : values)
+        for (HashMap<String, Object> value : values)
         {
-            HashMap<String, Object> essentialField = (HashMap<String, Object>) value;
-
-            if (essentialField.get("name").equals(fieldName))
+            if (value.get("name").equals(fieldName))
             {
-                String inputValue = (String) essentialField.get("value");
+                String inputValue = (String) value.get("value");
+                String label = (String) value.get("label");
 
+                validationResults.put("label", label);
                 validationResults.put("field", fieldName);
                 validationResults.put("inputValue", inputValue);
 
@@ -178,13 +179,14 @@ public class Kenya extends Money
 
         String fieldName = currentMethodName.replace("validate_", "");
 
-        for (Object value : values)
+        for (HashMap<String, Object> value : values)
         {
-            HashMap<String, Object> field = (HashMap<String, Object>) value;
-
-            if (field.get("name").equals(fieldName))
+            if (value.get("name").equals(fieldName))
             {
-                String inputValue = (String) field.get("value");
+                String inputValue = (String) value.get("value");
+                String label = (String) value.get("label");
+
+                validationResults.put("label", label);
 
 // TODO: Put here your custom validations for this field
 
@@ -205,13 +207,14 @@ public class Kenya extends Money
 
         String fieldName = currentMethodName.replace("validate_", "");
 
-        for (Object value : values)
+        for (HashMap<String, Object> value : values)
         {
-            HashMap<String, Object> field = (HashMap<String, Object>) value;
-
-            if (field.get("name").equals(fieldName))
+            if (value.get("name").equals(fieldName))
             {
-                String inputValue = (String) field.get("value");
+                String inputValue = (String) value.get("value");
+                String label = (String) value.get("label");
+
+                validationResults.put("label", label);
 
 // TODO: Put here your custom validations for this field
 
@@ -226,9 +229,32 @@ public class Kenya extends Money
     }
 
     //TODO: Work on this
-    public HashMap<?, ?> validate_accountHolderName()
+    public HashMap<?, ?> validate_taxCertificate()
     {
         HashMap<String, Object> validationResults = new HashMap<>();
+
+        String currentMethodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+
+        String fieldName = currentMethodName.replace("validate_", "");
+
+        for (HashMap<String, Object> value : values)
+        {
+            if (value.get("name").equals(fieldName))
+            {
+                String inputValue = (String) value.get("value");
+                String label = (String) value.get("label");
+
+                validationResults.put("label", label);
+
+// TODO: Put here your custom validations for this field
+
+                validationResults.put("field", fieldName);
+                validationResults.put("inputValue", inputValue);
+                validationResults.put("warningMessage", "Will be verified by the tax authorities");
+                validationResults.put("validity", true);
+            }
+        }
+
         return validationResults;
     }
 

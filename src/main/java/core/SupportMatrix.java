@@ -16,6 +16,7 @@ import java.util.List;
  */
 public class SupportMatrix
 {
+    // TODO:Add a way to show essential and optional fields upon request
     public static ArrayList<String> supportMatrix()
     {
         ArrayList<String> countries = new ArrayList<>();

@@ -20,7 +20,7 @@ public class MoneyUtils
      * @param plainText The text to be encoded
      * @return The encoded text
      */
-    public static String encode(String plainText) throws StorageEncodingException
+    public static String encode(String plainText)
     {
         byte[] encodedBytes = Base64.getEncoder().withoutPadding().encode(plainText.getBytes(StandardCharsets.UTF_8));
 

@@ -1,7 +1,6 @@
 package core;
 
 import com.google.gson.Gson;
-import core.utils.MoneyUtils;
 import exceptions.*;
 
 import javax.crypto.BadPaddingException;
@@ -13,9 +12,14 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static core.utils.MoneyUtils.encode;
+import static core.utils.MoneyUtils.sha256;
 
 public abstract class Money
 {
@@ -161,7 +165,7 @@ public abstract class Money
 
         for (HashMap<String, Object> field : fields)
         {
-             /*
+            /*
              * Get the name of the field
              */
             String fieldName = (String) field.get("name");
@@ -228,42 +232,6 @@ public abstract class Money
         }
 
         this.values = injectedFields;
-    }
-
-    /**
-     *
-     */
-    private ArrayList<HashMap<String, Object>> staticValues()
-    {
-        ArrayList<HashMap<String, Object>> staticValues = new ArrayList<>();
-
-        HashMap<String, Object> countryName = new HashMap<>();
-        countryName.put("name", "currencyCode");
-        countryName.put("label", "Currency Code");
-        countryName.put("value", getCountryName());
-
-        HashMap<String, Object> countryCode = new HashMap<>();
-        countryCode.put("name", "countryCode");
-        countryCode.put("label", "Country Code");
-        countryCode.put("value", getCountryCode());
-
-        HashMap<String, Object> currencyName = new HashMap<>();
-        currencyName.put("field", "currencyName");
-        currencyName.put("label", "Currency Name");
-        currencyName.put("value", getCurrencyName());
-
-        HashMap<String, Object> currencyCode = new HashMap<>();
-        currencyCode.put("field", "currencyCode");
-        currencyCode.put("label", "Currency Code");
-        currencyCode.put("value", getCurrencyCode());
-
-        staticValues.add(countryName);
-        staticValues.add(countryCode);
-        staticValues.add(currencyName);
-        staticValues.add(currencyCode);
-
-        return staticValues;
-
     }
 
     /**
@@ -363,12 +331,11 @@ public abstract class Money
      * @throws BadPaddingException         Invalid padding in the key file
      * @throws InvalidKeyException         Encryption keys are invalid
      * @throws IllegalBlockSizeException   Invalid block size in the key file
-     * @throws StorageEncodingException    Could not encode the data
      */
     public String saveCoin() throws FieldValidationException, UndefinedValidatorException, IllegalAccessException,
             InvalidKeySpecException, NoSuchAlgorithmException,
-            IOException, BadPaddingException, InvalidKeyException, IllegalBlockSizeException,
-            StorageEncodingException
+            IOException, BadPaddingException, InvalidKeyException, IllegalBlockSizeException
+
     {
         ArrayList<HashMap<String, Object>> validatedFields = validateValues();
 
@@ -405,6 +372,9 @@ public abstract class Money
 
             // We now know that it is valid. No need to store validity message in database
             field.remove("validity");
+
+            // Is there a need to store warnings?
+            field.remove("warningMessage");
         }
 
         /*
@@ -416,9 +386,9 @@ public abstract class Money
          */
         String valuesAsJSON = new Gson().toJson(values);
 
-        String storageKey = MoneyUtils.encode(
-                Objects.requireNonNull(MoneyUtils.sha256(
-                        MoneyUtils.encode(
+        String storageKey = encode(
+                Objects.requireNonNull(sha256(
+                        encode(
                                 String.format("%s.%s", getCountryName(), valuesAsJSON)
                         )
                 ))
@@ -447,5 +417,41 @@ public abstract class Money
         {
             return null;
         }
+    }
+
+    /**
+     * Retrieves all static values of the Currency
+     * @return An ArrayList containing the static values of the currency
+     */
+    private ArrayList<HashMap<String, Object>> staticValues()
+    {
+        ArrayList<HashMap<String, Object>> staticValues = new ArrayList<>();
+
+        HashMap<String, Object> countryName = new HashMap<>();
+        countryName.put("name", "currencyCode");
+        countryName.put("label", "Currency Code");
+        countryName.put("value", getCountryName());
+
+        HashMap<String, Object> countryCode = new HashMap<>();
+        countryCode.put("name", "countryCode");
+        countryCode.put("label", "Country Code");
+        countryCode.put("value", getCountryCode());
+
+        HashMap<String, Object> currencyName = new HashMap<>();
+        currencyName.put("field", "currencyName");
+        currencyName.put("label", "Currency Name");
+        currencyName.put("value", getCurrencyName());
+
+        HashMap<String, Object> currencyCode = new HashMap<>();
+        currencyCode.put("field", "currencyCode");
+        currencyCode.put("label", "Currency Code");
+        currencyCode.put("value", getCurrencyCode());
+
+        staticValues.add(countryName);
+        staticValues.add(countryCode);
+        staticValues.add(currencyName);
+        staticValues.add(currencyCode);
+
+        return staticValues;
     }
 }

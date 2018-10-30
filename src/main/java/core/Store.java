@@ -50,7 +50,7 @@ final class Store
         try (Connection connection = DriverManager.getConnection(VAULT))
         {
             // Idempotent
-            String sql = "INSERT OR IGNORE INTO coins(serial_number, country, denomination) VALUES(?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO coins(serial_number, country, denomination) VALUES(?, ?, ?)";
 
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, serialNumber);

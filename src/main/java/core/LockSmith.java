@@ -12,8 +12,8 @@ class LockSmith
     private PrivateKey privateKey;
     private PublicKey publicKey;
 
-    public static final String PRIVATE_KEY = "keys/private.key";
-    public static final String PUBLIC_KEY = "keys/public.key";
+    static final String PRIVATE_KEY = "keys/private.key";
+    static final String PUBLIC_KEY = "keys/public.key";
     static final String CIPHER_ALGORITHM = "RSA";
 
     /**

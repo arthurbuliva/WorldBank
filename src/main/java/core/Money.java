@@ -243,7 +243,7 @@ public abstract class Money
      * @throws IncompleteFieldDefinitionException Field definition is incomplete
      * @throws NoSuchMethodException              Validator methods do not exist
      */
-    private void checkValidators() throws IncompleteFieldDefinitionException, NoSuchMethodException
+    private void checkValidators() throws IncompleteFieldDefinitionException
     {
         ArrayList<HashMap<String, Object>> fields = essentialFields();
 
@@ -277,7 +277,23 @@ public abstract class Money
              *
              * Throws a java.lang.NoSuchMethodException if method does not exist
              */
-            this.getClass().getDeclaredMethod(validatorMethod);
+
+            try
+            {
+                this.getClass().getDeclaredMethod(validatorMethod);
+            }
+            catch (NoSuchMethodException ex)
+            {
+                /*
+                    Validation method is missing which implies that this field is not valid.
+                    Mask this from the end user
+                */
+                errorsByFieldName.put(fieldName,
+                        String.format("'%s' is not a valid input parameter for %s",
+                                fieldName, this.getClass().getSimpleName()
+                        )
+                );
+            }
         }
     }
 

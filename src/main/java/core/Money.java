@@ -56,6 +56,8 @@ public abstract class Money
      */
     public abstract String getCurrencyCode();
 
+    // Holder for error messages
+    private HashMap<String, String> errorsByFieldName = new HashMap<>();
 
     private Enigma enigma;
 
@@ -97,14 +99,12 @@ public abstract class Money
      * @throws NoSuchMethodException              Undefined validator methods
      * @throws IncompleteFieldDefinitionException Field definition is incomplete
      * @throws FieldClashException                Attempting to define optional field with the same name as an essential field
-     * @throws InvalidInputException              Inputting a value that is not expected
      * @throws NoSuchPaddingException             Invalid padding in the key file
      * @throws NoSuchAlgorithmException           Invalid encryption algorithm
-     * @throws NoSuchProviderException            Invalid encryption provider
      */
     public Money(HashMap<String, String> values) throws NoSuchMethodException,
-            IncompleteFieldDefinitionException, FieldClashException, InvalidInputException,
-            NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, FieldValidationException
+            IncompleteFieldDefinitionException, FieldClashException,
+            NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException
     {
         /*
          * Check if all the validators exist
@@ -132,9 +132,8 @@ public abstract class Money
      * have a value attributed to them upon initialization
      *
      * @param values The values that have been input
-     * @throws FieldValidationException In case any of the essential fields does not have a value
      */
-    private void checkValues(HashMap<String, ?> values) throws FieldValidationException
+    private void checkValues(HashMap<String, ?> values)
     {
         for (HashMap<String, Object> field : essentialFields())
         {
@@ -142,11 +141,11 @@ public abstract class Money
             String userValue = (String) values.get(fieldName);
 
             /*
-             * Throw an exception if any of the mandatory fields does not have a value
+             * Add an exception if any of the mandatory fields does not have a value
              */
             if (userValue == null)
             {
-                throw new FieldValidationException(String.format("Essential field '%s' must have a value", fieldName));
+                errorsByFieldName.put(fieldName, String.format("Essential field '%s' must have a value", fieldName));
             }
         }
     }
@@ -154,7 +153,7 @@ public abstract class Money
     /**
      * Sets the values into the fields
      */
-    private void injectFields(HashMap<String, ?> values) throws FieldClashException, InvalidInputException
+    private void injectFields(HashMap<String, ?> values) throws FieldClashException
     {
         ArrayList<HashMap<String, Object>> injectedFields = new ArrayList<>();
 
@@ -217,8 +216,8 @@ public abstract class Money
                     Validation method is missing which implies that this field is not valid.
                     Mask this from the end user
                 */
-                throw new InvalidInputException(
-                        String.format("%s is not a valid input parameter for %s",
+                errorsByFieldName.put(entry.getKey(),
+                        String.format("'%s' is not a valid input parameter for %s",
                                 entry.getKey(), this.getClass().getSimpleName()
                         )
                 );
@@ -286,34 +285,45 @@ public abstract class Money
      * Invokes the validation of the input fields
      *
      * @return An ArrayList containing the validation results
-     * @throws IllegalAccessException      Validator methods defined with the incorrect accessibility
-     * @throws UndefinedValidatorException Validator has not been defined
      */
-    public ArrayList<HashMap<String, Object>> validateValues() throws IllegalAccessException, UndefinedValidatorException
+    public ArrayList<HashMap<String, Object>> validateValues()
     {
         ArrayList validation = new ArrayList();
 
         for (HashMap<String, Object> field : values)
         {
             String fieldName = (String) field.get("name");
+            String fieldValue = (String) field.get("value");
+
+            field.put("validity", false);
+
+            if(fieldValue == null)
+            {
+                continue;
+            }
 
             String validatorMethod = String.format("validate_%s", fieldName);
 
-            Method method;
-
             try
             {
-                method = this.getClass().getDeclaredMethod(validatorMethod);
+                Method method = this.getClass().getDeclaredMethod(validatorMethod);
+
                 validation.add(method.invoke(this));
+
+                field.put("validity", true);
             }
-            catch (NoSuchMethodException | java.lang.reflect.InvocationTargetException exception)
+            catch (Exception exception)
             {
-                throw new UndefinedValidatorException(
-                        String.format("Validation method %s has not been defined for field %s",
-                                validatorMethod, fieldName)
-                );
+                validation.add(field);
             }
         }
+
+        HashMap<String, Object> errors = new HashMap<>();
+        errors.put("name", "errorsByFieldName");
+        errors.put("label", "Errors by field name");
+        errors.put("value", errorsByFieldName);
+
+        validation.add(errors);
 
         return validation;
     }
@@ -322,7 +332,6 @@ public abstract class Money
      * Saves the fields into the database
      *
      * @return The id of the saved object
-     * @throws FieldValidationException    Exception when validating a field
      * @throws UndefinedValidatorException Validator has not been defined
      * @throws IllegalAccessException      Validator methods defined with the incorrect accessibility
      * @throws InvalidKeySpecException     Encryption key specifications are invalid
@@ -332,50 +341,56 @@ public abstract class Money
      * @throws InvalidKeyException         Encryption keys are invalid
      * @throws IllegalBlockSizeException   Invalid block size in the key file
      */
-    public String saveCoin() throws FieldValidationException, UndefinedValidatorException, IllegalAccessException,
+    public String saveCoin() throws UndefinedValidatorException, IllegalAccessException,
             InvalidKeySpecException, NoSuchAlgorithmException,
-            IOException, BadPaddingException, InvalidKeyException, IllegalBlockSizeException
+            IOException, BadPaddingException, InvalidKeyException, IllegalBlockSizeException, NoSuchProviderException, NoSuchPaddingException
 
     {
         ArrayList<HashMap<String, Object>> validatedFields = validateValues();
 
+        HashMap<String, Object> errorMap = new HashMap<>();
+
         for (HashMap<String, Object> field : validatedFields)
         {
-            String fieldName = (String) field.get("field");
-            boolean validity = (boolean) field.get("validity");
+            String fieldName = (String) field.get("name");
 
-            try
+            if(fieldName.equalsIgnoreCase("errorsByFieldName"))
             {
-                String warningMessage = (String) field.get("warningMessage");
+                errorMap = field;
+                continue;
+            }
 
-                if (warningMessage != null)
-                {
-                    Logger.getLogger(getCountryName()).log(
-                            Level.WARNING,
-                            String.format("%s: %s", fieldName, warningMessage)
-                    );
-                }
-            }
-            catch (NullPointerException ex)
+            if(field.get("warningMessage") != null)
             {
-                //Do nothing really
+//                Logger.getLogger(getCountryName()).log(
+//                        Level.WARNING,
+//                        String.format("%s: %s", fieldName, field.get("warningMessage"))
+//                );
+
+
+            // Is there a need to store warnings?
+            field.remove("warningMessage");
             }
+
+            boolean validity = (field.get("validity") != null) && (boolean) field.get("validity");
+
             if (!validity)
             {
-                String errorMessage = (String) field.get("errorMessage");
-
-                throw new FieldValidationException(
-                        String.format("Could not validate input %s: %s",
-                                fieldName, errorMessage)
-                );
+                return validatedFields.toString();
             }
 
             // We now know that it is valid. No need to store validity message in database
             field.remove("validity");
-
-            // Is there a need to store warnings?
-            field.remove("warningMessage");
         }
+
+        errorsByFieldName = (HashMap<String, String>) errorMap.get("value");
+
+        if(errorsByFieldName.size() != 0)
+        {
+            return validatedFields.toString();
+        }
+
+        validatedFields.remove("errorsByFieldName");
 
         /*
          * If we reach this point of the code, all the fields have values
@@ -399,8 +414,6 @@ public abstract class Money
         validatedFields.addAll(staticValues()); // Add static properties of the Currency
         validatedFields.add(coin);
 
-        //TODO: Output the labels of the fields as part of output
-
         /*
          * Encrypt the payload
          */
@@ -410,8 +423,8 @@ public abstract class Money
 
         if (store.saveCoin(storageKey, getCountryName(), payload))
         {
-//            return validatedFields;
-            return storageKey;
+            CoinDisplay display = new CoinDisplay();
+            return display.showCoin(storageKey);
         }
         else
         {
@@ -438,12 +451,12 @@ public abstract class Money
         countryCode.put("value", getCountryCode());
 
         HashMap<String, Object> currencyName = new HashMap<>();
-        currencyName.put("field", "currencyName");
+        currencyName.put("name", "currencyName");
         currencyName.put("label", "Currency Name");
         currencyName.put("value", getCurrencyName());
 
         HashMap<String, Object> currencyCode = new HashMap<>();
-        currencyCode.put("field", "currencyCode");
+        currencyCode.put("name", "currencyCode");
         currencyCode.put("label", "Currency Code");
         currencyCode.put("value", getCurrencyCode());
 
